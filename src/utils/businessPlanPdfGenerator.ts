@@ -1,7 +1,13 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | null)[], filename: string) => {
+export const generateBusinessPlanPDF = async (
+  sections: any[], 
+  theme: any, 
+  setCurrentPage: (page: number) => void,
+  getCurrentPageElement: () => HTMLDivElement | null,
+  filename: string
+) => {
   try {
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -20,10 +26,9 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
     const availableWidth = pdfWidth - leftMargin - rightMargin;
     const availableHeight = pdfHeight - topMargin - bottomMargin;
 
-    // Filter out null elements
-    const validElements = pageElements.filter(element => element !== null) as HTMLDivElement[];
+    const totalPages = 10;
     
-    console.log(`Processing ${validElements.length} pages for PDF generation`);
+    console.log(`Starting PDF generation for ${totalPages} pages`);
     
     // Copy all stylesheets once to reuse for all pages
     const styleSheets = Array.from(document.styleSheets);
@@ -36,15 +41,26 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
       }
     }).join('\n');
     
-    for (let i = 0; i < validElements.length; i++) {
-      const element = validElements[i];
+    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+      console.log(`Processing page ${pageNum}/${totalPages}`);
       
-      if (!element) continue;
+      // Set the current page to render the correct content
+      setCurrentPage(pageNum);
+      
+      // Wait for React to re-render with the new page
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get the current page element from the DOM
+      const element = getCurrentPageElement();
+      
+      if (!element) {
+        console.warn(`Page ${pageNum} element not found, skipping...`);
+        continue;
+      }
 
-      console.log(`Processing page ${i + 1}/${validElements.length}`);
-      console.log('Element content:', element.innerHTML.substring(0, 200) + '...');
+      console.log(`Capturing page ${pageNum} content:`, element.innerHTML.substring(0, 200) + '...');
 
-      // Create wrapper for this page
+      // Create wrapper for this page using your proven method
       const wrapper = document.createElement('div');
       
       // Clone and append the element to wrapper
@@ -61,13 +77,13 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
       wrapper.style.zIndex = '-1000';
       document.body.appendChild(wrapper);
       
-      // Add styles to the wrapper
+      // Add styles to the wrapper using your method
       const styleElement = document.createElement('style');
       styleElement.textContent = cssText;
       wrapper.appendChild(styleElement);
       
       // Wait for styles to be applied
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       try {
         const canvas = await html2canvas(wrapper, {
@@ -87,16 +103,16 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
           }
         });
 
-        console.log(`Canvas generated for page ${i + 1}: ${canvas.width}x${canvas.height}`);
+        console.log(`Canvas generated for page ${pageNum}: ${canvas.width}x${canvas.height}`);
         
         // Check if canvas has content
         if (canvas.width === 0 || canvas.height === 0) {
-          console.warn(`Page ${i + 1} canvas is empty, skipping...`);
+          console.warn(`Page ${pageNum} canvas is empty, skipping...`);
           continue;
         }
 
         // Add new page if not the first page
-        if (i > 0) {
+        if (pageNum > 1) {
           pdf.addPage();
         }
 
@@ -124,10 +140,10 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
         
         pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderWidth, renderHeight);
         
-        console.log(`Page ${i + 1} added to PDF successfully`);
+        console.log(`Page ${pageNum} added to PDF successfully`);
         
       } catch (canvasError) {
-        console.error(`Error generating canvas for page ${i + 1}:`, canvasError);
+        console.error(`Error generating canvas for page ${pageNum}:`, canvasError);
       } finally {
         // Clean up the temporary wrapper
         if (document.body.contains(wrapper)) {
@@ -147,7 +163,7 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
 
     pdf.save(filename);
     
-    console.log(`PDF generated successfully with ${validElements.length} pages!`);
+    console.log(`PDF generated successfully with ${totalPages} pages!`);
     
   } catch (error) {
     console.error('Error generating PDF:', error);

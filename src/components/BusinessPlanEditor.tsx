@@ -66,27 +66,26 @@ export const BusinessPlanEditor: React.FC<BusinessPlanEditorProps> = ({ template
     setIsGeneratingPDF(true);
     
     try {
-      // Collect all page elements by cycling through each page
-      const pageElements: (HTMLDivElement | null)[] = [];
+      // Store the original page to restore later
       const originalPage = currentPage;
       
-      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-        // Set the current page to render the correct content
-        setCurrentPage(pageNum);
-        
-        // Wait for React to re-render with the new page
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Get the rendered page element from the DOM
-        const currentPageElement = pageRefs.current[pageNum];
-        pageElements.push(currentPageElement);
-      }
+      // Function to get the current page element
+      const getCurrentPageElement = () => {
+        const pageElement = document.querySelector('[data-page-content]') as HTMLDivElement;
+        return pageElement;
+      };
       
-      // Restore original page
+      // Generate PDF with all pages
+      await generateBusinessPlanPDF(
+        sections,
+        template.theme,
+        setCurrentPage,
+        getCurrentPageElement,
+        'business-plan.pdf'
+      );
+      
+      // Restore original page after PDF generation
       setCurrentPage(originalPage);
-      
-      // Generate PDF
-      await generateBusinessPlanPDF(pageElements, 'business-plan.pdf');
       
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -271,13 +270,15 @@ export const BusinessPlanEditor: React.FC<BusinessPlanEditorProps> = ({ template
           >
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
               {currentSection && (
-                <BusinessPlanPage
-                  ref={(el) => (pageRefs.current[currentPage] = el)}
-                  section={currentSection}
-                  theme={template.theme}
-                  pageNumber={currentPage}
-                  totalPages={totalPages}
-                />
+                <div data-page-content>
+                  <BusinessPlanPage
+                    ref={(el) => (pageRefs.current[currentPage] = el)}
+                    section={currentSection}
+                    theme={template.theme}
+                    pageNumber={currentPage}
+                    totalPages={totalPages}
+                  />
+                </div>
               )}
             </div>
           </motion.div>
