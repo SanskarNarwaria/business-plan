@@ -25,42 +25,66 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
 
       console.log(`Processing page ${i + 1}/${validElements.length}`);
 
-      // Ensure the element is visible and properly styled
-      element.style.position = 'static';
-      element.style.visibility = 'visible';
-      element.style.opacity = '1';
-      element.style.transform = 'none';
-      element.style.webkitPrintColorAdjust = 'exact';
-      element.style.colorAdjust = 'exact';
+      // Ensure the element and all children are properly styled for PDF
+      const prepareElementForPDF = (el: HTMLElement) => {
+        el.style.webkitPrintColorAdjust = 'exact';
+        el.style.colorAdjust = 'exact';
+        el.style.boxSizing = 'border-box';
+        el.style.visibility = 'visible';
+        el.style.opacity = '1';
+        el.style.display = el.style.display || 'block';
+        
+        // Ensure text is visible
+        if (el.style.color === '' || el.style.color === 'transparent') {
+          el.style.color = '#374151';
+        }
+        
+        // Ensure backgrounds are visible
+        if (el.style.backgroundColor === 'transparent' || el.style.backgroundColor === '') {
+          const computedStyle = window.getComputedStyle(el);
+          if (computedStyle.backgroundColor && computedStyle.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+            el.style.backgroundColor = computedStyle.backgroundColor;
+          }
+        }
+      };
       
-      // Apply styles to all child elements
+      // Apply to root element
+      prepareElementForPDF(element);
+      
+      // Apply to all child elements
       const allElements = element.querySelectorAll('*');
       allElements.forEach((el) => {
-        const htmlEl = el as HTMLElement;
-        htmlEl.style.webkitPrintColorAdjust = 'exact';
-        htmlEl.style.colorAdjust = 'exact';
-        htmlEl.style.boxSizing = 'border-box';
+        prepareElementForPDF(el as HTMLElement);
       });
 
       // Wait for any dynamic content to load
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Generate canvas
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.5,
         logging: false,
         allowTaint: true,
         useCORS: true,
         backgroundColor: '#ffffff',
-        width: 816,
-        height: 1056,
+        width: element.offsetWidth || 816,
+        height: element.offsetHeight || 1056,
         scrollX: 0,
         scrollY: 0,
-        foreignObjectRendering: true,
+        foreignObjectRendering: false,
+        removeContainer: true,
         ignoreElements: (element) => {
           return element.classList?.contains('no-print') || false;
         }
       });
+
+      console.log(`Canvas generated for page ${i + 1}: ${canvas.width}x${canvas.height}`);
+      
+      // Check if canvas has content
+      if (canvas.width === 0 || canvas.height === 0) {
+        console.warn(`Page ${i + 1} canvas is empty, skipping...`);
+        continue;
+      }
 
       // Add new page if not the first page
       if (pageCount > 0) {
@@ -82,6 +106,10 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
       console.log(`Page ${pageCount} added to PDF`);
     }
 
+    if (pageCount === 0) {
+      throw new Error('No valid pages were generated for the PDF');
+    }
+
     // Add metadata to the PDF
     pdf.setProperties({
       title: 'Business Plan',
@@ -99,6 +127,6 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
     
   } catch (error) {
     console.error('Error generating PDF:', error);
-    alert(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
+    throw error;
   }
 };

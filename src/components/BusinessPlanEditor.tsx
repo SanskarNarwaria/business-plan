@@ -66,71 +66,72 @@ export const BusinessPlanEditor: React.FC<BusinessPlanEditorProps> = ({ template
     setIsGeneratingPDF(true);
     
     try {
-      // Create a temporary container to render all pages
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.top = '0';
-      tempContainer.style.width = '8.5in';
-      tempContainer.style.backgroundColor = '#ffffff';
-      document.body.appendChild(tempContainer);
-
+      // Collect all page elements by temporarily rendering each page
       const pageElements: HTMLDivElement[] = [];
+      const originalPage = currentPage;
+      
+      // Create a hidden container for rendering all pages
+      const hiddenContainer = document.createElement('div');
+      hiddenContainer.style.position = 'fixed';
+      hiddenContainer.style.top = '-10000px';
+      hiddenContainer.style.left = '-10000px';
+      hiddenContainer.style.width = '8.5in';
+      hiddenContainer.style.height = '11in';
+      hiddenContainer.style.backgroundColor = '#ffffff';
+      hiddenContainer.style.zIndex = '-1000';
+      document.body.appendChild(hiddenContainer);
 
-      // Render all pages sequentially
+      // Render each page and capture the element
       for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
         const pageSection = sections.find(section => section.pageNumber === pageNum);
         if (!pageSection) continue;
 
-        // Create a page container
-        const pageContainer = document.createElement('div');
-        pageContainer.style.width = '8.5in';
-        pageContainer.style.minHeight = '11in';
-        pageContainer.style.backgroundColor = '#ffffff';
-        pageContainer.style.marginBottom = '20px';
-        pageContainer.style.padding = pageNum === 1 ? '2rem' : '3rem';
-        pageContainer.style.boxSizing = 'border-box';
-        pageContainer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-        pageContainer.style.fontSize = '14px';
-        pageContainer.style.lineHeight = '1.5';
-        pageContainer.style.color = '#374151';
-
-        // Render the page content using React
-        const { createRoot } = await import('react-dom/client');
-        const root = createRoot(pageContainer);
+        // Update current page to render the correct content
+        setCurrentPage(pageNum);
         
-        await new Promise<void>((resolve) => {
-          root.render(
-            React.createElement(BusinessPlanPage, {
-              section: pageSection,
-              theme: template.theme,
-              pageNumber: pageNum,
-              totalPages: totalPages,
-              ref: (el: HTMLDivElement | null) => {
-                if (el) {
-                  pageElements.push(el);
-                  resolve();
-                }
-              }
-            })
-          );
-        });
-
-        tempContainer.appendChild(pageContainer);
+        // Wait for state update and re-render
+        await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Wait for rendering to complete
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Get the current page element from the DOM
+        const currentPageElement = pageRefs.current[pageNum];
+        if (currentPageElement) {
+          // Clone the element to avoid modifying the original
+          const clonedElement = currentPageElement.cloneNode(true) as HTMLDivElement;
+          
+          // Ensure proper styling for PDF
+          clonedElement.style.width = '8.5in';
+          clonedElement.style.minHeight = '11in';
+          clonedElement.style.backgroundColor = '#ffffff';
+          clonedElement.style.padding = pageNum === 1 ? '2rem' : '3rem';
+          clonedElement.style.boxSizing = 'border-box';
+          clonedElement.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+          clonedElement.style.fontSize = '14px';
+          clonedElement.style.lineHeight = '1.5';
+          clonedElement.style.color = '#374151';
+          clonedElement.style.position = 'static';
+          clonedElement.style.transform = 'none';
+          
+          // Append to hidden container temporarily
+          hiddenContainer.appendChild(clonedElement);
+          pageElements.push(clonedElement);
+          
+          // Wait a bit for any dynamic content to render
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
       }
-
-      // Generate PDF with all pages
+      
+      // Restore original page
+      setCurrentPage(originalPage);
+      
+      // Generate PDF
       if (pageElements.length > 0) {
         await generateBusinessPlanPDF(pageElements, 'business-plan.pdf');
       } else {
-        throw new Error('No pages were rendered for PDF generation');
+        throw new Error('No pages were captured for PDF generation');
       }
-
+      
       // Clean up
-      document.body.removeChild(tempContainer);
+      document.body.removeChild(hiddenContainer);
       
     } catch (error) {
       console.error('Error generating PDF:', error);
