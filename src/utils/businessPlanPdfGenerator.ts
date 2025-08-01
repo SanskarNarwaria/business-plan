@@ -11,12 +11,30 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    let pageCount = 0;
+    
+    // Define margins
+    const leftMargin = 10;
+    const rightMargin = 10;
+    const topMargin = 10;
+    const bottomMargin = 10;
+    const availableWidth = pdfWidth - leftMargin - rightMargin;
+    const availableHeight = pdfHeight - topMargin - bottomMargin;
 
-    // Filter out null elements and process all pages
+    // Filter out null elements
     const validElements = pageElements.filter(element => element !== null) as HTMLDivElement[];
     
     console.log(`Processing ${validElements.length} pages for PDF generation`);
+    
+    // Copy all stylesheets once to reuse for all pages
+    const styleSheets = Array.from(document.styleSheets);
+    const cssText = styleSheets.map(sheet => {
+      try {
+        return Array.from(sheet.cssRules).map(rule => rule.cssText).join('\n');
+      } catch (e) {
+        // Handle cross-origin stylesheets
+        return '';
+      }
+    }).join('\n');
     
     for (let i = 0; i < validElements.length; i++) {
       const element = validElements[i];
@@ -24,90 +42,98 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
       if (!element) continue;
 
       console.log(`Processing page ${i + 1}/${validElements.length}`);
+      console.log('Element content:', element.innerHTML.substring(0, 200) + '...');
 
-      // Ensure the element and all children are properly styled for PDF
-      const prepareElementForPDF = (el: HTMLElement) => {
-        el.style.webkitPrintColorAdjust = 'exact';
-        el.style.colorAdjust = 'exact';
-        el.style.boxSizing = 'border-box';
-        el.style.visibility = 'visible';
-        el.style.opacity = '1';
-        el.style.display = el.style.display || 'block';
-        
-        // Ensure text is visible
-        if (el.style.color === '' || el.style.color === 'transparent') {
-          el.style.color = '#374151';
-        }
-        
-        // Ensure backgrounds are visible
-        if (el.style.backgroundColor === 'transparent' || el.style.backgroundColor === '') {
-          const computedStyle = window.getComputedStyle(el);
-          if (computedStyle.backgroundColor && computedStyle.backgroundColor !== 'rgba(0, 0, 0, 0)') {
-            el.style.backgroundColor = computedStyle.backgroundColor;
-          }
-        }
-      };
+      // Create wrapper for this page
+      const wrapper = document.createElement('div');
       
-      // Apply to root element
-      prepareElementForPDF(element);
+      // Clone and append the element to wrapper
+      const clonedElement = element.cloneNode(true) as HTMLElement;
+      wrapper.appendChild(clonedElement);
       
-      // Apply to all child elements
-      const allElements = element.querySelectorAll('*');
-      allElements.forEach((el) => {
-        prepareElementForPDF(el as HTMLElement);
-      });
-
-      // Wait for any dynamic content to load
+      // Hide wrapper off-screen for rendering
+      wrapper.style.position = 'absolute';
+      wrapper.style.left = '-9999px';
+      wrapper.style.top = '-9999px';
+      wrapper.style.width = '8.5in';
+      wrapper.style.minHeight = '11in';
+      wrapper.style.backgroundColor = '#ffffff';
+      wrapper.style.zIndex = '-1000';
+      document.body.appendChild(wrapper);
+      
+      // Add styles to the wrapper
+      const styleElement = document.createElement('style');
+      styleElement.textContent = cssText;
+      wrapper.appendChild(styleElement);
+      
+      // Wait for styles to be applied
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Generate canvas
-      const canvas = await html2canvas(element, {
-        scale: 1.5,
-        logging: false,
-        allowTaint: true,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        width: element.offsetWidth || 816,
-        height: element.offsetHeight || 1056,
-        scrollX: 0,
-        scrollY: 0,
-        foreignObjectRendering: false,
-        removeContainer: true,
-        ignoreElements: (element) => {
-          return element.classList?.contains('no-print') || false;
+      try {
+        const canvas = await html2canvas(wrapper, {
+          scale: 2,
+          logging: false,
+          allowTaint: true,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          width: wrapper.offsetWidth || 816, // 8.5in at 96dpi
+          height: wrapper.offsetHeight || 1056, // 11in at 96dpi
+          scrollX: 0,
+          scrollY: 0,
+          foreignObjectRendering: false,
+          removeContainer: true,
+          ignoreElements: (element) => {
+            return element.classList?.contains('no-print') || false;
+          }
+        });
+
+        console.log(`Canvas generated for page ${i + 1}: ${canvas.width}x${canvas.height}`);
+        
+        // Check if canvas has content
+        if (canvas.width === 0 || canvas.height === 0) {
+          console.warn(`Page ${i + 1} canvas is empty, skipping...`);
+          continue;
         }
-      });
 
-      console.log(`Canvas generated for page ${i + 1}: ${canvas.width}x${canvas.height}`);
-      
-      // Check if canvas has content
-      if (canvas.width === 0 || canvas.height === 0) {
-        console.warn(`Page ${i + 1} canvas is empty, skipping...`);
-        continue;
+        // Add new page if not the first page
+        if (i > 0) {
+          pdf.addPage();
+        }
+
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        
+        // Calculate dimensions to fit the page properly while maintaining aspect ratio
+        const canvasAspectRatio = canvas.height / canvas.width;
+        const availableAspectRatio = availableHeight / availableWidth;
+        
+        let renderWidth, renderHeight;
+        
+        if (canvasAspectRatio > availableAspectRatio) {
+          // Height is the limiting factor
+          renderHeight = availableHeight;
+          renderWidth = renderHeight / canvasAspectRatio;
+        } else {
+          // Width is the limiting factor
+          renderWidth = availableWidth;
+          renderHeight = renderWidth * canvasAspectRatio;
+        }
+        
+        // Center the image within the available space
+        const xOffset = leftMargin + (availableWidth - renderWidth) / 2;
+        const yOffset = topMargin + (availableHeight - renderHeight) / 2;
+        
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderWidth, renderHeight);
+        
+        console.log(`Page ${i + 1} added to PDF successfully`);
+        
+      } catch (canvasError) {
+        console.error(`Error generating canvas for page ${i + 1}:`, canvasError);
+      } finally {
+        // Clean up the temporary wrapper
+        if (document.body.contains(wrapper)) {
+          document.body.removeChild(wrapper);
+        }
       }
-
-      // Add new page if not the first page
-      if (pageCount > 0) {
-        pdf.addPage();
-      }
-
-      const imgData = canvas.toDataURL('image/png');
-      
-      // Calculate dimensions to fit the page properly
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      // Center the image if it's smaller than the page
-      const yOffset = imgHeight < pdfHeight ? (pdfHeight - imgHeight) / 2 : 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, Math.min(imgHeight, pdfHeight));
-      pageCount++;
-      
-      console.log(`Page ${pageCount} added to PDF`);
-    }
-
-    if (pageCount === 0) {
-      throw new Error('No valid pages were generated for the PDF');
     }
 
     // Add metadata to the PDF
@@ -121,12 +147,94 @@ export const generateBusinessPlanPDF = async (pageElements: (HTMLDivElement | nu
 
     pdf.save(filename);
     
-    // Show success message
-    const successMessage = `PDF generated successfully! ${pageCount} pages exported.`;
-    console.log(successMessage);
+    console.log(`PDF generated successfully with ${validElements.length} pages!`);
     
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;
+  }
+};
+
+// Single page PDF generation function (keeping your original function)
+export const generatePDF = async (element: HTMLElement, filename: string) => {
+  try {
+    console.log(element.innerHTML);
+    const wrapper = document.createElement('div');
+    
+    // Clone and append the element to wrapper
+    const clonedElement = element.cloneNode(true) as HTMLElement;
+    wrapper.appendChild(clonedElement);
+    
+    // Hide wrapper off-screen for rendering
+    wrapper.style.position = 'absolute';
+    wrapper.style.left = '-9999px';
+    document.body.appendChild(wrapper);
+    
+    // Copy all stylesheets to ensure styles are preserved
+    const styleSheets = Array.from(document.styleSheets);
+    const cssText = styleSheets.map(sheet => {
+      try {
+        return Array.from(sheet.cssRules).map(rule => rule.cssText).join('\n');
+      } catch (e) {
+        // Handle cross-origin stylesheets
+        return '';
+      }
+    }).join('\n');
+    
+    // Add styles to the wrapper
+    const styleElement = document.createElement('style');
+    styleElement.textContent = cssText;
+    wrapper.appendChild(styleElement);
+    
+    const canvas = await html2canvas(wrapper, {
+      scale: 3,
+      logging: false,
+      allowTaint: true,
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    });
+    
+    // Clean up the temporary wrapper
+    document.body.removeChild(wrapper);
+    
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    
+    // Define left and right margins (in mm)
+    const leftMargin = 1.5; // 1.5mm left margin
+    const rightMargin = 1.5; // 1.5mm right margin
+    const availableWidth = pdfWidth - leftMargin - rightMargin;
+    
+    const canvasAspectRatio = canvas.height / canvas.width;
+    const availableAspectRatio = pdfHeight / availableWidth;
+    
+    let renderWidth, renderHeight;
+    
+    if (canvasAspectRatio > availableAspectRatio) {
+      // Height is the limiting factor
+      renderHeight = pdfHeight;
+      renderWidth = renderHeight / canvasAspectRatio;
+    } else {
+      // Width is the limiting factor
+      renderWidth = availableWidth;
+      renderHeight = renderWidth * canvasAspectRatio;
+    }
+    
+    // Center horizontally within the available width (between margins)
+    const xOffset = leftMargin + (availableWidth - renderWidth) / 2;
+    const yOffset = (pdfHeight - renderHeight) / 2;
+    
+    pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderWidth, renderHeight);
+    pdf.save(filename);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Error generating PDF. Please try again.');
   }
 };
