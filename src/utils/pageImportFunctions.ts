@@ -102,7 +102,12 @@ export const importCoverPageData = async (data: PageImportData) => {
     year: apiData?.year || data.year || '',
     preparedBy: apiData?.preparedBy || data.preparedBy || '',
     // Dynamic stats cards
-    statsCards: apiData?.statsCards || (data.statsCards ? JSON.parse(data.statsCards) : []) as StatsCard[]
+    statsCards: apiData?.statsCards || (data.statsCards ? JSON.parse(data.statsCards) : [
+      { label: 'Founded', value: '2024', color: 'bg-blue-100 text-blue-800' },
+      { label: 'Market Size', value: '$1B+', color: 'bg-green-100 text-green-800' },
+      { label: 'Team Size', value: '10+', color: 'bg-purple-100 text-purple-800' },
+      { label: 'Funding Goal', value: '$500K', color: 'bg-orange-100 text-orange-800' }
+    ]) as StatsCard[]
   };
 };
 
@@ -127,7 +132,11 @@ export const importCompanyDescriptionData = async (data: PageImportData) => {
     visionStatement: apiData?.visionStatement || data.visionStatement || '',
     uniqueValueProposition: apiData?.uniqueValueProposition || data.uniqueValueProposition || '',
     // Dynamic stats cards
-    statsCards: apiData?.statsCards || (data.statsCards ? JSON.parse(data.statsCards) : []) as StatsCard[]
+    statsCards: apiData?.statsCards || (data.statsCards ? JSON.parse(data.statsCards) : [
+      { label: 'Industry', value: 'Technology', color: 'bg-blue-100 text-blue-800' },
+      { label: 'Founded', value: '2024', color: 'bg-green-100 text-green-800' },
+      { label: 'Employees', value: '10+', color: 'bg-purple-100 text-purple-800' }
+    ]) as StatsCard[]
   };
 };
 
@@ -142,9 +151,14 @@ export const importMarketAnalysisData = async (data: PageImportData) => {
     competitorAnalysis: apiData?.competitorAnalysis || data.competitorAnalysis || '',
     competitiveAdvantage: apiData?.competitiveAdvantage || data.competitiveAdvantage || '',
     // Dynamic market data
-    totalMarket: apiData?.totalMarket || data.totalMarket || '',
-    marketGrowth: apiData?.marketGrowth || data.marketGrowth || '',
-    marketSegments: apiData?.marketSegments || (data.marketSegments ? JSON.parse(data.marketSegments) : []) as MarketSegment[]
+    totalMarket: apiData?.totalMarket || data.totalMarket || '$1B+',
+    marketGrowth: apiData?.marketGrowth || data.marketGrowth || '15% CAGR',
+    marketSegments: apiData?.marketSegments || (data.marketSegments ? JSON.parse(data.marketSegments) : [
+      { name: 'Enterprise', value: '$400M', percentage: '40%', color: 'bg-blue-100 text-blue-800' },
+      { name: 'SMB', value: '$300M', percentage: '30%', color: 'bg-green-100 text-green-800' },
+      { name: 'Startups', value: '$200M', percentage: '20%', color: 'bg-purple-100 text-purple-800' },
+      { name: 'Other', value: '$100M', percentage: '10%', color: 'bg-gray-100 text-gray-800' }
+    ]) as MarketSegment[]
   };
 };
 
@@ -159,7 +173,11 @@ export const importOrganizationManagementData = async (data: PageImportData) => 
     advisoryBoard: apiData?.advisoryBoard || data.advisoryBoard || '',
     keyPersonnel: apiData?.keyPersonnel || data.keyPersonnel || '',
     // Dynamic stakeholder data
-    stakeholders: apiData?.stakeholders || (data.stakeholders ? JSON.parse(data.stakeholders) : []) as Stakeholder[]
+    stakeholders: apiData?.stakeholders || (data.stakeholders ? JSON.parse(data.stakeholders) : [
+      { id: 1, name: 'John Doe', role: 'CEO', stake: '40%', experience: '10+ years', email: 'john@company.com', linkedin: 'linkedin.com/in/johndoe' },
+      { id: 2, name: 'Jane Smith', role: 'CTO', stake: '30%', experience: '8+ years', email: 'jane@company.com', linkedin: 'linkedin.com/in/janesmith' },
+      { id: 3, name: 'Mike Johnson', role: 'CFO', stake: '20%', experience: '12+ years', email: 'mike@company.com', linkedin: 'linkedin.com/in/mikejohnson' }
+    ]) as Stakeholder[]
   };
 };
 
@@ -174,7 +192,12 @@ export const importProductServiceData = async (data: PageImportData) => {
     intellectualProperty: apiData?.intellectualProperty || data.intellectualProperty || '',
     futureProducts: apiData?.futureProducts || data.futureProducts || '',
     // Dynamic product features
-    productFeatures: apiData?.productFeatures || (data.productFeatures ? JSON.parse(data.productFeatures) : []) as ProductFeature[]
+    productFeatures: apiData?.productFeatures || (data.productFeatures ? JSON.parse(data.productFeatures) : [
+      { name: 'Core Platform', description: 'Main product offering', percentage: '40%', color: 'bg-blue-100 text-blue-800', icon: 'Building2' },
+      { name: 'Analytics', description: 'Data insights', percentage: '25%', color: 'bg-green-100 text-green-800', icon: 'TrendingUp' },
+      { name: 'Integration', description: 'Third-party APIs', percentage: '20%', color: 'bg-purple-100 text-purple-800', icon: 'Target' },
+      { name: 'Support', description: 'Customer service', percentage: '15%', color: 'bg-orange-100 text-orange-800', icon: 'Users' }
+    ]) as ProductFeature[]
   };
 };
 
@@ -189,7 +212,12 @@ export const importMarketingSalesData = async (data: PageImportData) => {
     distributionChannels: apiData?.distributionChannels || data.distributionChannels || '',
     promotionStrategy: apiData?.promotionStrategy || data.promotionStrategy || '',
     // Dynamic marketing channels
-    marketingChannels: apiData?.marketingChannels || (data.marketingChannels ? JSON.parse(data.marketingChannels) : []) as MarketingChannel[]
+    marketingChannels: apiData?.marketingChannels || (data.marketingChannels ? JSON.parse(data.marketingChannels) : [
+      { name: 'Digital Marketing', percentage: '40%', color: 'bg-blue-100 text-blue-800', icon: 'Target' },
+      { name: 'Content Marketing', percentage: '25%', color: 'bg-green-100 text-green-800', icon: 'FileText' },
+      { name: 'Social Media', percentage: '20%', color: 'bg-purple-100 text-purple-800', icon: 'Users' },
+      { name: 'Events & PR', percentage: '15%', color: 'bg-orange-100 text-orange-800', icon: 'Award' }
+    ]) as MarketingChannel[]
   };
 };
 
@@ -204,9 +232,14 @@ export const importFinancialProjectionsData = async (data: PageImportData) => {
     breakEvenAnalysis: apiData?.breakEvenAnalysis || data.breakEvenAnalysis || '',
     fundingNeeds: apiData?.fundingNeeds || data.fundingNeeds || '',
     // Dynamic financial metrics
-    financialMetrics: apiData?.financialMetrics || (data.financialMetrics ? JSON.parse(data.financialMetrics) : []) as FinancialMetric[],
-    projectedRevenue: apiData?.projectedRevenue || data.projectedRevenue || '',
-    revenueTimeline: apiData?.revenueTimeline || data.revenueTimeline || ''
+    financialMetrics: apiData?.financialMetrics || (data.financialMetrics ? JSON.parse(data.financialMetrics) : [
+      { label: 'Revenue (Y1)', value: '$500K', description: 'First year revenue', color: 'bg-green-100 text-green-800' },
+      { label: 'Revenue (Y3)', value: '$2.5M', description: 'Third year revenue', color: 'bg-blue-100 text-blue-800' },
+      { label: 'Break-even', value: 'Month 18', description: 'Break-even timeline', color: 'bg-purple-100 text-purple-800' },
+      { label: 'Gross Margin', value: '75%', description: 'Target gross margin', color: 'bg-orange-100 text-orange-800' }
+    ]) as FinancialMetric[],
+    projectedRevenue: apiData?.projectedRevenue || data.projectedRevenue || '$2.5M by Year 3',
+    revenueTimeline: apiData?.revenueTimeline || data.revenueTimeline || 'Conservative growth projection based on market analysis and customer acquisition strategy'
   };
 };
 
@@ -221,7 +254,12 @@ export const importFundingRequestData = async (data: PageImportData) => {
     strategicFinancialSituation: apiData?.strategicFinancialSituation || data.strategicFinancialSituation || '',
     exitStrategy: apiData?.exitStrategy || data.exitStrategy || '',
     // Dynamic funding allocation
-    fundingAllocation: apiData?.fundingAllocation || (data.fundingAllocation ? JSON.parse(data.fundingAllocation) : []) as FundingAllocation[]
+    fundingAllocation: apiData?.fundingAllocation || (data.fundingAllocation ? JSON.parse(data.fundingAllocation) : [
+      { category: 'Product Development', amount: '$200K', percentage: '40%', color: 'bg-blue-100 text-blue-800', icon: 'Building2' },
+      { category: 'Marketing & Sales', amount: '$150K', percentage: '30%', color: 'bg-green-100 text-green-800', icon: 'Target' },
+      { category: 'Operations', amount: '$100K', percentage: '20%', color: 'bg-purple-100 text-purple-800', icon: 'Briefcase' },
+      { category: 'Working Capital', amount: '$50K', percentage: '10%', color: 'bg-orange-100 text-orange-800', icon: 'DollarSign' }
+    ]) as FundingAllocation[]
   };
 };
 
@@ -276,7 +314,12 @@ export const importGrantsData = async (data: PageImportData) => {
     applicationDeadlines: apiData?.applicationDeadlines || data.applicationDeadlines || '',
     grantAcquisitionStrategy: apiData?.grantAcquisitionStrategy || data.grantAcquisitionStrategy || '',
     // Dynamic funding stats
-    fundingStats: apiData?.fundingStats || (data.fundingStats ? JSON.parse(data.fundingStats) : []) as StatsCard[]
+    fundingStats: apiData?.fundingStats || (data.fundingStats ? JSON.parse(data.fundingStats) : [
+      { label: 'Available Grants', value: '50+', color: 'bg-green-100 text-green-800' },
+      { label: 'Total Funding', value: '$10M+', color: 'bg-blue-100 text-blue-800' },
+      { label: 'Success Rate', value: '25%', color: 'bg-purple-100 text-purple-800' },
+      { label: 'Avg. Grant Size', value: '$200K', color: 'bg-orange-100 text-orange-800' }
+    ]) as StatsCard[]
   };
 };
 
